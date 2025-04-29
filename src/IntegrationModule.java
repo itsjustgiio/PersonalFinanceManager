@@ -17,7 +17,6 @@ public class IntegrationModule {
 	public static class MainMenu {
 
 		private Account currentUser;
-
 		private AccountDAO accountDAO;
 		private AuthService authService;
 		private Budget budget;
@@ -159,15 +158,15 @@ public class IntegrationModule {
 							else
 								expense += Math.abs(t.getAmount());
 						}
-						PredictionManager predictor = new PredictionManager(income, expense);
-						String status = predictor.determineBudgetStatus();
+						PredictionManager pm = new PredictionManager(income, expense);
+						String status = pm.determineBudgetStatus();
 						System.out.println("Current Budget Status: " + status);
 						if (status.equals("surplus")) {
 							System.out.println("You can spend an additional: $"
-									+ (predictor.determinePossibleAdditionalSpending("any") / 100.0));
+									+ (pm.determinePossibleAdditionalSpending("any") / 100.0));
 						} else if (status.equals("deficit")) {
 							System.out.println("You need to cut expenses by: $"
-									+ (predictor.determineDecreaseForSurplus() / 100.0));
+									+ (pm.determineDecreaseForSurplus() / 100.0));
 						}
 					} catch (IOException e) {
 						System.out.println("Failed to read transactions: " + e.getMessage());
