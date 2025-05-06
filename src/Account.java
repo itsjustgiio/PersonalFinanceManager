@@ -1,14 +1,11 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Scanner;
+import java.io.*;
+
 
 class AuthService {
     private final AccountDAO accountDAO;
@@ -122,25 +119,18 @@ public class Account {
     private String email;
     private String password; 
 
-   
     public Account(String id, String username, String email, String password) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.password = password;
     }
-    /*
-     * Default constructor added by Integration Team (Aye Chan)
-     * 
-     * 
-     * Reason : Budget.java used new Account() without parameters.
-     * 
-     */
+    //Default Constructor for Budget.java
     public Account() {
-    	this.id = "1234567";
-    	this.username = "John Smith";
-    	this.email ="Jsmith@gamil.com";
-    	this.password ="password1234";
+        this.id = "";
+        this.username = "";
+        this.email = "";
+        this.password = "";
     }
     public String getUserDataDir() {
         String baseDir = "users";

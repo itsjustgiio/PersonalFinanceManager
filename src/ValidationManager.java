@@ -2,9 +2,9 @@
  * @author Ayana Tran, Axyl Fredrick, Susie Marrero, Omar Quraishi
  * @version 1.01, 10 April 2025
  */
-import java.io.BufferedReader;            // To create File objects and check if files exist, are readable, etc.
-import java.io.File;       // To open a file for reading (specifically text files like CSVs).
-import java.io.FileReader;   // To read text from a file efficiently line-by-line.
+import java.io.File;            // To create File objects and check if files exist, are readable, etc.
+import java.io.FileReader;       // To open a file for reading (specifically text files like CSVs).
+import java.io.BufferedReader;   // To read text from a file efficiently line-by-line.
 import java.io.IOException;      // To handle exceptions during file operations (read errors, etc).
 
 
@@ -113,7 +113,51 @@ public class ValidationManager {
 
         // Method to check if a dollar amount string is valid
         public static boolean validDollarAmount(String amount) {
-            return amount.trim().matches("[+-]?\\d*(\\.\\d{1,2})?"); 
+            return amount.trim().matches("[+-]?\\d+"); // "[+-]?\\d*(\\.\\d{1,2})?" if you want non integer dollar amounts
+        }
+
+        // Validation of one individual line
+        public static boolean validateLine(int expectedYear, String line) {
+            String[] parts = line.split(",");
+            if (parts.length < 3) {
+                System.err.println("Invalid line format: not enough columns.");
+                return false;
+            }
+            
+            /* If commas are not allowed in the file add this code
+
+			if (parts.length > 3) {
+				System.err.println("Invalid line format: too many columns or invalid comma in category.");
+			}
+
+             */
+    
+            String date = parts[0];
+            String category = line.substring(line.indexOf(",")+1, line.lastIndexOf(",")-1);//parts[1];
+            String amount = parts[parts.length-1];
+    
+            if (!validDateFormat(date)) {
+                System.err.println("Invalid date format: " + date);
+                return false;
+            }
+    
+            int yearInFile = Integer.parseInt(date.split("/")[parts.length-1]);
+            if (yearInFile != expectedYear) {
+                System.err.println("Year mismatch: found " + yearInFile + ", expected " + expectedYear);
+                return false;
+            }
+    
+            if (!validCategories(category)) {
+                System.err.println("Invalid category: " + category);
+                return false;
+            }
+    
+            if (!validDollarAmount(amount)) {
+                System.err.println("Invalid dollar amount: " + amount);
+                return false;
+            }
+
+            return true;
         }
 
         //Validate the entire CSV file
@@ -125,36 +169,8 @@ public class ValidationManager {
             try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
                 String line;
                 while ((line = br.readLine()) != null) {
-                    String[] parts = line.split(",");
-                    if (parts.length < 3) {
-                        System.err.println("Invalid line format: not enough columns.");
-                        return false;
-                    }
-
-                    String date = parts[0];
-                    String category = parts[1];
-                    String amount = parts[2];
-
-                    if (!validDateFormat(date)) {
-                        System.err.println("Invalid date format: " + date);
-                        return false;
-                    }
-
-                    int yearInFile = Integer.parseInt(date.split("/")[2]);
-                    if (yearInFile != expectedYear) {
-                        System.err.println("Year mismatch: found " + yearInFile + ", expected " + expectedYear);
-                        return false;
-                    }
-
-                    if (!validCategories(category)) {
-                        System.err.println("Invalid category: " + category);
-                        return false;
-                    }
-
-                    if (!validDollarAmount(amount)) {
-                        System.err.println("Invalid dollar amount: " + amount);
-                        return false;
-                    }
+                    if (!validateLine(expectedYear, line))
+                      return false;
                 }
             } catch (IOException e) {
                 System.err.println("Error reading file: " + e.getMessage());
@@ -207,3 +223,4 @@ public class ValidationManager {
         }
     }
 }
+
