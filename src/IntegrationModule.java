@@ -1,11 +1,12 @@
 //File Name: IntegrationModule.java
+
 //Purpose: Integrated Main Menu for PFM system (Beta Version with Account Deletion)
 //Team: Integration
 //Team Lead: Aye Chan
 
-/* Bug Fix: KAN-16 - Added input validation for numeric menu selection to prevent NumberFormatException
- * Bug Fix: KAN-17 - Added detailed user-friendly error messages for failed module operations
- * Bug Fix: KAN-19 - Added logic to delete user's budget CSV files from pfm_data folder when account is deleted
+/* Bug Fix: KAN-16 - Added input validation for numeric menu selection to prevent NumberFormatException - Aye Chan
+ * Bug Fix: KAN-17 - Added detailed user-friendly error messages for failed module operations - Aye Chan
+ * Bug Fix: KAN-19 - Added logic to delete user's budget CSV files from pfm_data folder when account is deleted - Aye Chan
 */
 
 import java.util.*;
@@ -144,8 +145,12 @@ public class IntegrationModule {
 						boolean saveToFile = scanner.nextLine().equalsIgnoreCase("y");
 						ReportsManager.analyzeData(currentUser, year, saveToFile);
 					} else {
-						System.out.println("Invalid or missing CSV file.");
+						System.out.println("No data found for year " + year);
+						System.out.println(
+								"Please upload it first using option 1 (Upload or Update Income/Expense CSV).");
+						continue;
 					}
+
 				} else if (option == 6) {
 					System.out.print("Enter year to perform prediction: ");
 					int year = -1;
@@ -162,8 +167,7 @@ public class IntegrationModule {
 
 					if (!file.exists()) {
 						System.out.println("Prediction failed: No data found for year " + year);
-						System.out.println(
-								"Please upload it first using option 1 (Upload or Update Income/Expense CSV).");
+						System.out.println("Please upload it first using option 1.");
 						continue;
 					}
 
@@ -180,8 +184,25 @@ public class IntegrationModule {
 							System.out.printf("You need to cut expenses by: $%d%n", cut);
 						} else if (status.equals("balanced")) {
 							System.out.println("Your budget is balanced — no prediction needed.");
-						} else {
-							System.out.println("Unknown budget status. Please check your data.");
+						}
+
+						// Ask if user wants to simulate changing category spending
+						System.out.print("Would you like to simulate modifying spending for a category? (y/n): ");
+						String mod = scanner.nextLine().trim();
+						if (mod.equalsIgnoreCase("y")) {
+							System.out.print("Enter category to modify (case-sensitive): ");
+							String category = scanner.nextLine().trim();
+
+							System.out.print("Enter adjustment amount in dollars (e.g., 200 to reduce): ");
+							int amount = 0;
+							try {
+								amount = Integer.parseInt(scanner.nextLine().trim());
+							} catch (NumberFormatException e) {
+								System.out.println("Invalid number. Cancelling adjustment.");
+								return;
+							}
+
+							pd.modifySpending(category, -amount); // reduce spending by that amount
 						}
 
 					} catch (IOException e) {
