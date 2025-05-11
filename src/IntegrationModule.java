@@ -32,26 +32,33 @@ public class IntegrationModule {
 				System.out.println("\n1. Register\n2. Login\n3. Exit");
 				int choice = -1;
 				while (true) {
-				    System.out.print("Select an option: ");
-				    String input = scanner.nextLine();
-				    try {
-				        choice = Integer.parseInt(input);
-				        break;
-				    } catch (NumberFormatException e) {
-				        System.out.println("Invalid input. Please enter a number.");
-				    }
+					System.out.print("Select an option: ");
+					String input = scanner.nextLine();
+					try {
+						choice = Integer.parseInt(input);
+						break;
+					} catch (NumberFormatException e) {
+						System.out.println("Invalid input. Please enter a number.");
+					}
 				}
 
 				if (choice == 1) {
 					System.out.print("Username: ");
-					String username = scanner.nextLine();
+					String username = scanner.nextLine().trim();
 					System.out.print("Email: ");
-					String email = scanner.nextLine();
+					String email = scanner.nextLine().trim();
 					System.out.print("Password: ");
-					String password = scanner.nextLine();
+					String password = scanner.nextLine().trim();
+					System.out.print("Secret Question: ");
+					String secretQuestion = scanner.nextLine().trim();
+					System.out.print("Secret Answer: ");
+					String secretAnswer = scanner.nextLine().trim();
 
-					boolean success = authService.register(username, email, password);
-					System.out.println(success ? "Account created successfully!" : "Username already exists.");
+					boolean success = authService.register(username, email, password, secretQuestion, secretAnswer);
+					if (success) {
+						System.out.println("Account created successfully!");
+					}
+
 				} else if (choice == 2) {
 					System.out.print("Username: ");
 					String username = scanner.nextLine();
@@ -85,20 +92,20 @@ public class IntegrationModule {
 				System.out.println("4. Delete Budget for a Year");
 				System.out.println("5. Generate Financial Report");
 				System.out.println("6. Perform What-If Budget Prediction");
-				System.out.println("7. Delete My Account");
-				System.out.println("8. Logout");
+				System.out.println("7. Change Password ");
+				System.out.println("8. Delete My Account");
+				System.out.println("9. Logout");
 				int option = -1;
 				while (true) {
-				    System.out.print("Select an option: ");
-				    String input = scanner.nextLine();
-				    try {
-				        option = Integer.parseInt(input);
-				        break;
-				    } catch (NumberFormatException e) {
-				        System.out.println("Invalid input. Please enter a number.");
-				    }
+					System.out.print("Select an option: ");
+					String input = scanner.nextLine();
+					try {
+						option = Integer.parseInt(input);
+						break;
+					} catch (NumberFormatException e) {
+						System.out.println("Invalid input. Please enter a number.");
+					}
 				}
-
 
 				if (option == 1) {
 					budget.promptToCreateOrUpdate();
@@ -140,71 +147,117 @@ public class IntegrationModule {
 						System.out.println("Invalid or missing CSV file.");
 					}
 				} else if (option == 6) {
-				    System.out.print("Enter year to perform prediction: ");
-				    int year = -1;
-				    try {
-				        year = Integer.parseInt(scanner.nextLine());
-				    } catch (NumberFormatException e) {
-				        System.out.println("Invalid year. Please enter a valid numeric year.");
-				        continue;
-				    }
+					System.out.print("Enter year to perform prediction: ");
+					int year = -1;
+					try {
+						year = Integer.parseInt(scanner.nextLine());
+					} catch (NumberFormatException e) {
+						System.out.println("Invalid year. Please enter a valid numeric year.");
+						continue;
+					}
 
-				    String filePath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername() + "/" + year + ".csv";
-				    File file = new File(filePath);
+					String filePath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername() + "/"
+							+ year + ".csv";
+					File file = new File(filePath);
 
-				    if (!file.exists()) {
-				        System.out.println("Prediction failed: No data found for year " + year);
-				        System.out.println("Please upload it first using option 1 (Upload or Update Income/Expense CSV).");
-				        continue;
-				    }
+					if (!file.exists()) {
+						System.out.println("Prediction failed: No data found for year " + year);
+						System.out.println(
+								"Please upload it first using option 1 (Upload or Update Income/Expense CSV).");
+						continue;
+					}
 
-				    try {
-				        PredictionManager pd = new PredictionManager(filePath);
-				        String status = pd.determineBudgetStatus();
-				        System.out.println("Current Budget Status: " + status);
+					try {
+						PredictionManager pd = new PredictionManager(filePath);
+						String status = pd.determineBudgetStatus();
+						System.out.println("Current Budget Status: " + status);
 
-				        if (status.equals("surplus")) {
-				            System.out.printf("You can spend an additional: $%.2f%n", pd.determinePossibleAdditionalSpending("Any"));
-				        } else if (status.equals("deficit")) {
-				            System.out.printf("You need to cut expenses by: $%.2f%n", pd.determineDecreaseForSurplus());
-				        } else {
-				            System.out.println("Unknown budget status. Please check your data.");
-				        }
+						if (status.equals("surplus")) {
+							int extra = pd.determinePossibleAdditionalSpending("Any");
+							System.out.printf("You can spend an additional: $%d%n", extra);
+						} else if (status.equals("deficit")) {
+							int cut = pd.determineDecreaseForSurplus();
+							System.out.printf("You need to cut expenses by: $%d%n", cut);
+						} else if (status.equals("balanced")) {
+							System.out.println("Your budget is balanced — no prediction needed.");
+						} else {
+							System.out.println("Unknown budget status. Please check your data.");
+						}
 
-				    } catch (IOException e) {
-				        System.out.println("Failed to run prediction due to a system error.");
-				        System.out.println("Details: " + e.getMessage());
-				    }
-				
-
+					} catch (IOException e) {
+						System.out.println("Failed to run prediction due to a system error.");
+						System.out.println("Details: " + e.getMessage());
+					} catch (IllegalArgumentException e) {
+						System.out.println("Data validation error: " + e.getMessage());
+					}
 				} else if (option == 7) {
-				    System.out.print("Are you sure you want to delete your account? (y/n): ");
-				    String confirm = scanner.nextLine();
+					System.out.println("Choose method:");
+					System.out.println("1. I know my current password");
+					System.out.println("2. I forgot my password but can answer my secret question");
+					System.out.print("Select option: ");
+					String method = scanner.nextLine().trim();
 
-				    if (confirm.equalsIgnoreCase("y")) {
-				        // Delete associated files
-				        String userDirPath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername();
-				        File userDir = new File(userDirPath);
-				        if (userDir.exists() && userDir.isDirectory()) {
-				            for (File file : userDir.listFiles()) {
-				                if (!file.delete()) {
-				                    System.out.println("⚠ Failed to delete file: " + file.getName());
-				                }
-				            }
-				            if (!userDir.delete()) {
-				                System.out.println("⚠ Failed to delete user folder: " + userDirPath);
-				            }
-				        }
+					if (method.equals("1")) {
+						System.out.print("Enter your current password: ");
+						String currentPassword = scanner.nextLine().trim();
 
-				        accountDAO.deleteAccount(currentUser.getId());
-				        System.out.println("Your account has been deleted.");
-				        System.out.println("Goodbye, " + currentUser.getUsername() + "!");
-				        displayLoginMenu();
-				        
-				    }
-				
+						if (currentUser.getPassword().equals(currentPassword)) {
+							System.out.print("Enter your new password: ");
+							String newPassword = scanner.nextLine().trim();
 
+							currentUser.setPassword(newPassword);
+							accountDAO.updateAccount(currentUser);
+							System.out.println("Password successfully updated.");
+						} else {
+							System.out.println("Incorrect current password. Password not changed.");
+						}
+
+					} else if (method.equals("2")) {
+						System.out.println("Secret Question: " + currentUser.getSecretQuestion());
+						System.out.print("Your Answer: ");
+						String answer = scanner.nextLine().trim();
+
+						if (currentUser.getSecretAnswer().equalsIgnoreCase(answer)) {
+							System.out.print("Enter your new password: ");
+							String newPassword = scanner.nextLine().trim();
+
+							currentUser.setPassword(newPassword);
+							accountDAO.updateAccount(currentUser);
+							System.out.println("Password successfully updated.");
+
+						} else {
+							System.out.println("Incorrect answer. Password not changed.");
+						}
+					} else {
+						System.out.println("Invalid selection.");
+					}
 				} else if (option == 8) {
+					System.out.print("Are you sure you want to delete your account? (y/n): ");
+					String confirm = scanner.nextLine();
+
+					if (confirm.equalsIgnoreCase("y")) {
+						// Delete associated files
+						String userDirPath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername();
+						File userDir = new File(userDirPath);
+						if (userDir.exists() && userDir.isDirectory()) {
+							for (File file : userDir.listFiles()) {
+								if (!file.delete()) {
+									System.out.println("⚠ Failed to delete file: " + file.getName());
+								}
+							}
+							if (!userDir.delete()) {
+								System.out.println("⚠ Failed to delete user folder: " + userDirPath);
+							}
+						}
+
+						accountDAO.deleteAccount(currentUser.getId());
+						System.out.println("Your account has been deleted.");
+						System.out.println("Goodbye, " + currentUser.getUsername() + "!");
+						displayLoginMenu();
+
+					}
+
+				} else if (option == 9) {
 					logoutUser();
 					break;
 				} else {

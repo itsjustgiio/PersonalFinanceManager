@@ -1,28 +1,16 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
 import java.util.Scanner;
 
 /**
  * @author Mir Haque, Raian Pial, Mahdi Mahin, Atif Tausif
- * @version 2.0, May 2025
+ * @version 2.2, May 2025
  */
+public class PredictionManager {
 
- public class PredictionManager {
-
-    /*
-      NOTES:
-      Still working on using the CSV File
-      All methods are public...will work on security later
-      We are debating if the constructor should even have parameters because we are already given the income and expenses from the CSV File
-      Modify Spending doesn't take into account the priority categories
-    */
-
-    private double totalIncome;
-    private double totalExpenses;
+    private int totalIncome;
+    private int totalExpenses;
 
     private String priority1;
     private String priority2;
@@ -38,46 +26,72 @@ import java.util.Scanner;
     }
 
     /**
-     * Intializes totalIncome and totalExpenses from the CSV file
-     * 
+     * Initializes totalIncome and totalExpenses from the CSV file
+     *
      * @param filePath
      * @throws IOException
      */
     private void parseCSV(String filePath) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(filePath));
         String line;
-        boolean headerSkipped = false;
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-        HashSet<Integer> years = new HashSet<>();
+
+        totalIncome = 0;
+        totalExpenses = 0;
+        Integer expectedYear = null;
+        int lineNumber = 0;
 
         while ((line = reader.readLine()) != null) {
-            if (!headerSkipped) {
-                headerSkipped = true;
-                continue; // skip header
+            lineNumber++;
+            line = line.trim();
+            if (line.isEmpty()) continue;
+
+            // Skip header line if detected
+            if (lineNumber == 1
+                    && line.toLowerCase().contains("date")
+                    && line.contains("category")) {
+                continue;
             }
 
             String[] parts = line.split(",");
-            if (parts.length != 3) continue;
+            if (parts.length != 3) {
+                System.err.println("Skipping malformed line " + lineNumber + ": " + line);
+                continue;
+            }
 
-            String dateStr = parts[0].trim();
+            String date = parts[0].trim();
             String category = parts[1].trim();
-            double amount;
+            String amountStr = parts[2].trim();
 
-            try {
-                amount = Double.parseDouble(parts[2].trim());
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid amount, skipping line: " + line);
+            // Check if date format is valid
+            if (!ValidationManager.CheckCSVContent.validDateFormat(date)) {
+                System.err.println("Invalid date format at line " + lineNumber + ": " + date);
                 continue;
             }
 
-            try {
-                LocalDate date = LocalDate.parse(dateStr, formatter);
-                years.add(date.getYear());
-            } catch (Exception e) {
-                System.out.println("Invalid date format, skipping line: " + line);
+            // Extract and compare year
+            int currentYear = Integer.parseInt(date.split("/")[2]);
+            if (expectedYear == null) {
+                expectedYear = currentYear;
+            } else if (currentYear != expectedYear) {
+                reader.close();
+                throw new IllegalArgumentException("Mismatch: Expected year "
+                        + expectedYear + " but found " + currentYear
+                        + " at line " + lineNumber);
+            }
+
+            // Check if category is valid
+            if (!ValidationManager.CheckCSVContent.validCategories(category)) {
+                System.err.println("Invalid category at line " + lineNumber + ": " + category);
                 continue;
             }
 
+            // Check if amount is valid
+            if (!ValidationManager.CheckCSVContent.validDollarAmount(amountStr)) {
+                System.err.println("Invalid dollar amount at line " + lineNumber + ": " + amountStr);
+                continue;
+            }
+
+            int amount = Integer.parseInt(amountStr);
             if (amount > 0) {
                 totalIncome += amount;
             } else {
@@ -87,87 +101,48 @@ import java.util.Scanner;
 
         reader.close();
 
-        if (years.size() != 1) {
-            throw new IllegalArgumentException("All transactions must be from the same year.");
+        if (expectedYear == null) {
+            throw new IllegalArgumentException("CSV file contains no valid dated transactions.");
         }
     }
 
-   /**
-    * Returns the total expenses.
-    *
-    * @return totalExpenses
-    */
-    public double getTotalExpenses() {
-        return totalExpenses;
-   }
+    /** Getters and budget-status methods omitted for brevity */
 
-   /**
-    * Returns the total income.
-    *
-    * @return totalIncome
-    */
-    public double getTotalIncome() {
-        return totalIncome;
-    }
+    public int getTotalExpenses() { return totalExpenses; }
+    public int getTotalIncome()   { return totalIncome; }
 
-   /**
-    * Compares income to expenses and tells you if you're doing fine or not.
-    *
-    * @return "surplus", "deficit", or "balanced"
-    */
     public String determineBudgetStatus() {
-        if (totalIncome > totalExpenses) {
-           return "surplus";
-        } else if (totalIncome < totalExpenses) {
-           return "deficit";
-        } else {
-           return "balanced";
-        }
-   }
+        if (totalIncome > totalExpenses) return "surplus";
+        if (totalIncome < totalExpenses) return "deficit";
+        return "balanced";
+    }
 
-    /**
-    * Shows how much more you'd have to spend to end up in a deficit.
-    *
-    * @return extra amount needed to tip the budget into a deficit
-    */
-    public double determineIncreaseForDeficit() {
+    public int determineIncreaseForDeficit() {
         if (totalIncome > totalExpenses) {
-            return (totalIncome - totalExpenses) + 0.01; // spending 1 cent more causes deficit
+            return (totalIncome - totalExpenses) + 1;
         }
         return 0;
     }
 
-    /**
-    * Tells you how much you'd need to cut from your spending to move into a surplus.
-    *
-    * @return minimum amount you’d need to reduce expenses by
-    */
-    public double determineDecreaseForSurplus() {
+    public int determineDecreaseForSurplus() {
         if (totalExpenses > totalIncome) {
-            return (totalExpenses - totalIncome) + 0.01; // reducing 1 cent below income
+            return (totalExpenses - totalIncome) + 1;
         }
         return 0;
     }
 
-    /**
-    * How much more you could spend in a specific category without going into a deficit.
-    *
-    * @param category the expense category
-    * @return how much more they can spend while staying in surplus
-    */
-    public double determinePossibleAdditionalSpending(String category) {
-        if (determineBudgetStatus().equals("deficit")) {
+    public int determinePossibleAdditionalSpending(String category) {
+        if ("deficit".equals(determineBudgetStatus())) {
             return 0;
         }
-        double surplus = totalIncome - totalExpenses;
-        return surplus;
+        return totalIncome - totalExpenses;
     }
 
     /**
-    * Set a given category to be higher priority (up to 3).
-    * 
-    * @param category the category to set as a priority
-    */
+     * Set a given category to be higher priority (up to 3).
+     *
+     * @param category the category to set as a priority
+     */
     public void setBudgetPriorities(String category) {
         if (priority1 == null) {
             priority1 = category;
@@ -176,61 +151,99 @@ import java.util.Scanner;
         } else if (priority3 == null) {
             priority3 = category;
         } else {
-           System.out.println("Already set 3 priority categories.");
+            System.out.println("Already set 3 priority categories.");
         }
     }
 
+    /**
+     * Clears all budget priorities.
+     */
+    public void clearBudgetPriorities() {
+        priority1 = null;
+        priority2 = null;
+        priority3 = null;
+    }
 
-   /**
-    * Change spending on a certain category to see how it would affect the total expenses over the course of time
-    *
-    * @param category the category to modify
-    * @param amount   the amount to modify by
-    */
+    /**
+     * Removes a single priority category and shifts any lower priorities up.
+     *
+     * @param category the category to remove from priorities
+     */
+    public void removeBudgetPriority(String category) {
+        if (category == null) return;
+
+        if (category.equals(priority1)) {
+            priority1 = priority2;
+            priority2 = priority3;
+            priority3 = null;
+        } else if (category.equals(priority2)) {
+            priority2 = priority3;
+            priority3 = null;
+        } else if (category.equals(priority3)) {
+            priority3 = null;
+        } else {
+            System.out.println("Category '" + category + "' is not a current priority.");
+        }
+    }
+
+    /**
+     * Change spending on a certain category to see how it would affect total expenses.
+     * Priority categories have multiplier effects:
+     * 1. Top priority: no change
+     * 2. Second priority: 50%
+     * 3. Third priority: 25%
+     *
+     * Prevents applying leftover to the same category twice.
+     *
+     * @param category the category to modify
+     * @param amount   the amount to modify by
+     */
     public void modifySpending(String category, int amount) {
-    double adjustedAmount = amount;
-    double remaining = 0;
+        int adjustedAmount = amount;
+        int remaining = 0;
 
-    // Adjust amount based on priority level
-    if (category.equals(priority1)) {
-        System.out.println("Cannot modify spending in top priority category (" + category + ").");
-        remaining = amount;
-        adjustedAmount = 0;
-    } else if (category.equals(priority2)) {
-        adjustedAmount = amount * 0.5;
-        remaining = amount - adjustedAmount;
-    } else if (category.equals(priority3)) {
-        adjustedAmount = amount * 0.25;
-        remaining = amount - adjustedAmount;
-    }
-
-    totalExpenses += adjustedAmount;
-
-    if (totalExpenses < 0) {
-        totalExpenses = 0;
-    }
-
-    // Ask for another category if the adjustment was limited due to priority
-    if (remaining != 0) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.print("Enter another category to adjust by $" + String.format("%.2f", remaining) + ": ");
-        String secondaryCategory = scanner.nextLine();
-
-        totalExpenses += remaining;
-
-        if (totalExpenses < 0) {
-            totalExpenses = 0;
+        // Adjust based on priority
+        if (category.equals(priority1)) {
+            System.out.println("Cannot modify spending in top priority category (" + category + ").");
+            remaining = amount;
+            adjustedAmount = 0;
+        } else if (category.equals(priority2)) {
+            adjustedAmount = amount / 2;
+            remaining = amount - adjustedAmount;
+        } else if (category.equals(priority3)) {
+            adjustedAmount = amount / 4;
+            remaining = amount - adjustedAmount;
         }
 
-        System.out.println("Adjusted spending in " + secondaryCategory + " by $" + String.format("%.2f", remaining));
-    }
+        totalExpenses += adjustedAmount;
+        if (totalExpenses < 0) totalExpenses = 0;
 
-    // Calculate savings over 1, 2, and 5 years
-    double annualSavings = totalIncome - totalExpenses;
+        // If there's leftover, prompt for a different category
+        if (remaining > 0) {
+            Scanner scanner = new Scanner(System.in);
+            String secondaryCategory;
+            do {
+                System.out.print("Enter another category to adjust by $" +
+                        String.format("%.2f", (double) remaining) + ": ");
+                secondaryCategory = scanner.nextLine().trim();
+                if (secondaryCategory.equals(category)) {
+                    System.out.println("Cannot adjust the same category again. Please choose a different category.");
+                }
+            } while (secondaryCategory.equals(category));
 
-    System.out.println("\n--- Savings Projection ---");
-    System.out.printf("Annual Savings: $%.2f\n", annualSavings);
-    System.out.printf("Savings over 2 years: $%.2f\n", annualSavings * 2);
-    System.out.printf("Savings over 5 years: $%.2f\n", annualSavings * 5);
+            totalExpenses += remaining;
+            if (totalExpenses < 0) totalExpenses = 0;
+
+            System.out.println("Adjusted spending in " + secondaryCategory +
+                    " by $" + String.format("%.2f", (double) remaining));
+            // Note: do not close scanner tied to System.in
+        }
+
+        // Savings projections
+        int annualSavings = totalIncome - totalExpenses;
+        System.out.println("\n--- Savings Projection ---");
+        System.out.println("Annual Savings: $" + annualSavings);
+        System.out.println("Savings over 2 years: $" + (annualSavings * 2));
+        System.out.println("Savings over 5 years: $" + (annualSavings * 5));
     }
 }
