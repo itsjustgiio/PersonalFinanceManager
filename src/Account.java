@@ -118,6 +118,7 @@ public class Account {
     private String username;
     private String email;
     private String password; 
+    
 
     public Account(String id, String username, String email, String password) {
         this.id = id;
@@ -125,13 +126,13 @@ public class Account {
         this.email = email;
         this.password = password;
     }
-    //Default Constructor for Budget.java
+    
     public Account() {
-        this.id = "";
-        this.username = "";
-        this.email = "";
-        this.password = "";
-    }
+    	this.id = "";
+    	this.username = "";
+    	this.email = "";
+    	this.password ="";
+    	}
     public String getUserDataDir() {
         String baseDir = "users";
         String fullPath = baseDir + "/" + username + "_" + id;

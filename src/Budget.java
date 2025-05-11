@@ -1,3 +1,4 @@
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -6,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
+
 
 /**
  * The {@code Budget} class will handle all budget related operations such as
@@ -22,7 +24,7 @@ public class Budget {
      * @author Shaeem Rockcliffe
      * @version %I%, %G%
      */
-    public static class Transaction {
+    public class Transaction {
         private int month;
         private int day;
         private int year;
@@ -68,8 +70,13 @@ public class Budget {
          * @return the net change in dollars.
          */
         public long getAmount() { return amount; }
+
+        @Override
+        public String toString() {
+            return String.format("Transaction{%s/%s/%s, %s, %s}", month, day, year, category, amount);
+        }
     }
-    
+
     /**
      * Just for testing.
      * @param args - arguments to program. Ignored
@@ -78,39 +85,50 @@ public class Budget {
         try {
             var me = new Account();
             var b = new Budget(me);
-            var sc = new Scanner(System.in);
             String cmd;
             while (true) {
                 System.out.print("enter a command ([l]ist/[r]ead/[u]pdate/[d]elete/[q]uit)\n>>> ");
-                cmd = sc.next();
+                if (!scanner.hasNextLine()) break;
+
+                cmd = scanner.next();
                 switch (cmd.charAt(0)) {
                     case 'l':
                         for (var year : b.getYears()) System.out.println(year);
                         break;
                     case 'r':
-                        System.out.print("year #: ");
-                        var csv = b.readCSV(sc.nextInt());
+                        for (;;) {
+                            System.out.print("Year number: ");
+                            if (!scanner.hasNext()) return;
+                            if (scanner.hasNextInt()) break;
+                            System.err.println("Expected YYYY.");
+                            scanner.next();
+                        }
+                        
+                        var csv = b.readCSV(scanner.nextInt());
                         if (csv == null) {
                             System.err.println("Invalid CSV file.");
                             break;
                         }
                         for (var tr : csv)
-                            System.out.printf(
-                                "%s,%s\n", tr.getAmount(), tr.getCategory());
+                            System.out.println(tr);
                         break;
                     case 'd': b.promptToDelete(); break;
                     case 'u': b.promptToCreateOrUpdate(); break;
                     case 'q': System.exit(0);
                     default: System.err.println("Invalid command.");
                 }
+                System.out.print("\n");
             }
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            scanner.close();
         }
     }
-    private String userDataDir;
 
+    private String userDataDir;
+    private static Scanner scanner = new Scanner(System.in);
     /**
      * Constructs a Budget instance for a specific account
      * @param account is the account that will be associated with this budget
@@ -133,25 +151,27 @@ public class Budget {
      * prints error and returns. Prints error and exits if unexpected I/O error occurs. 
      */
     public void promptToCreateOrUpdate() {
-        Scanner userInput = new Scanner(System.in);
-    
-        promptEnsuringInput("Enter the year of the file you want to create/update: ", userInput);
-        String file = userInput.nextLine();
-        if (file.length() < 8) {
+        verifyUserDataDir();
+
+        String inputFilePath = getString("CSV file: ");
+
+        if (inputFilePath.length() < 8) {
             System.err.println("Invalid CSV file. Must be YYYY.csv");
             return;
         }
-        String basename = file.substring(file.length() - 8);
 
-        if (!basename.matches("^[1-9]\\d{3}\\.csv$")) {
-            System.err.println("Invalid CSV file. Must be YYYY.csv, 1000 <= YYYY <= 9999");
+        String basename = inputFilePath.substring(inputFilePath.length() - 8);
+
+        if (!basename.matches("[1-9]\\d{3}\\.csv")) {
+            System.err.println("Invalid CSV file. Must be YYYY.csv.");
             return;
         }
-        var fptr = new File(file);
-        if (!fptr.exists()) {
-            System.err.println("Cannot find file " + file);
+
+        var inputFile = new File(inputFilePath);
+        if (!inputFile.exists()) {
+            System.err.println("Cannot find file " + inputFilePath);
             return;
-        } else if (fptr.isDirectory()) {
+        } else if (inputFile.isDirectory()) {
             System.err.println("Cannot read a directory as a CSV file.");
             return;
         }
@@ -164,17 +184,14 @@ public class Budget {
             return;
         }
     
-        verifyUserDataDir();
     
-        String filename = userDataDir + "/" + userYear + ".csv";
-        File savedFile = new File(filename);
+        String savedFilePath = userDataDir + "/" + userYear + ".csv";
+        File savedFile = new File(savedFilePath);
     
         // Check if the file exists, if not, create it
         if (!savedFile.exists()) {
             try {
-                if (savedFile.createNewFile()) {
-                    System.out.println("File created: " + savedFile.getName());
-                } else {
+                if (!savedFile.createNewFile()) {
                     System.err.println("Error: Could not create the file.");
                     return;
                 }
@@ -188,23 +205,12 @@ public class Budget {
                 System.err.println("Error: A directory with this name already exists.");
                 return;
             }
-    
-            // Validate the file content using the validation manager
-            boolean isValid = ValidationManager.CheckCSVContent.validateWholeCSVFile(userYear, file);
-            
-            // If invalid, prompt the user
-            if (!isValid) {
-                promptEnsuringInput("The CSV file contains invalid records. Continue anyway? (y/n): ", userInput);
-                String userResponse = userInput.nextLine();
-                if (!userResponse.equalsIgnoreCase("y") && !userResponse.equalsIgnoreCase("yes")) {
-                    System.out.println("No changes have been made.");
-                    return;
-                }
-            }
-    
+
+            if (!verifyFileContent(inputFilePath, userYear)) return;
+
             // Prompt the user to overwrite if the file exists
-            promptEnsuringInput("CSV data for year already exists. Overwrite it (y/n): ", userInput);
-            String userResponse = userInput.nextLine();
+            String userResponse = getString("CSV data for year already exists. Overwrite it (y/n): ");
+
             if (!userResponse.equalsIgnoreCase("y") && !userResponse.equalsIgnoreCase("yes")) {
                 System.out.println("No changes have been made.");
                 return;
@@ -212,19 +218,19 @@ public class Budget {
         }
     
         // Proceed with copying the file content
-        try (BufferedReader fileReader = new BufferedReader(new FileReader(file));
-             BufferedWriter fileWriter = new BufferedWriter(new FileWriter(savedFile))) {
+        try (BufferedReader fileReader = new BufferedReader(new FileReader(inputFilePath));
+             BufferedWriter fileWriter = new BufferedWriter(new FileWriter(savedFilePath))) {
     
             String line;
             while ((line = fileReader.readLine()) != null) {
                 fileWriter.write(line);
                 fileWriter.newLine();
             }
-    
-            System.out.println("File created/updated successfully: " + savedFile.getName());
         } catch (IOException e) {
             panic("Unexpected I/O error when saving file: %s.", e.getMessage());
         }
+
+        System.out.println("=> Success.");
     }
     /**
      * Prompts the user for the year number of the file to
@@ -233,10 +239,9 @@ public class Budget {
      */
     void promptToDelete() {
         verifyUserDataDir();  // Ensures directory exists and is valid
-        Scanner scanner = new Scanner(System.in);
-        
-        promptEnsuringInput("Enter the year of the file you want to delete: ", scanner);
-        
+        System.out.print("Year number: ");
+        if (!scanner.hasNextLine()) System.exit(0);
+
         if (!scanner.hasNextInt()) {
             System.err.println("Error: Year must be an integer.");
             return;
@@ -291,14 +296,7 @@ public class Budget {
             return null;
         }
     
-        if (!ValidationManager.CheckCSVContent.validateWholeCSVFile(year, filename)) {
-            Scanner scanner = new Scanner(System.in);
-            promptEnsuringInput("CSV file failed validation. Continue anyway (y/n)? ", scanner);
-            String response = scanner.next().trim().toLowerCase();
-            if (!(response.equals("y") || response.equals("yes"))) {
-                return null;
-            }
-        }
+        if (!verifyFileContent(filename, year)) return null;
     
         ArrayList<Transaction> transactions = new ArrayList<>();
     
@@ -366,6 +364,7 @@ public class Budget {
         System.err.println("Fatal error: " + String.format(msg, args));
         System.exit(1);
     }
+
     /**
      * Whenever accessing the directory {@code userDataDir}, call this method first
      * to ensure the directory is valid.
@@ -380,17 +379,28 @@ public class Budget {
         }
     }
 
-    /**
-     * Prints a prompt string to the standard output, and ensures there's input left.
-     * Note: this method does not read in any input.
-     * @param prompt the message to display
-     * @param scanner the scanner to use
-     */
-    private void promptEnsuringInput(String prompt, Scanner scanner) {
+
+    private String getString(String prompt) {
         System.out.print(prompt);
 
         if (!scanner.hasNext()) {
             panic("Unexpected end of the input, exiting.");
         }
+
+        return scanner.next();
+    }
+
+    private boolean verifyFileContent(String filePath, int year) {
+        boolean isValid = ValidationManager.CheckCSVContent.validateWholeCSVFile(year, filePath);
+            
+        // If invalid, prompt the user
+        if (!isValid) {
+            String userResponse = getString("The CSV file contains invalid records. Continue anyway? (y/n): ");
+            if (!userResponse.equals("y") && !userResponse.equals("yes")) {
+                System.out.println("No changes have been made.");
+                return false;
+            }
+        }
+        return true;
     }
 }

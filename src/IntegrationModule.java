@@ -3,6 +3,11 @@
 //Team: Integration
 //Team Lead: Aye Chan
 
+/* Bug Fix: KAN-16 - Added input validation for numeric menu selection to prevent NumberFormatException
+ * Bug Fix: KAN-17 - Added detailed user-friendly error messages for failed module operations
+ * Bug Fix: KAN-19 - Added logic to delete user's budget CSV files from pfm_data folder when account is deleted
+*/
+
 import java.util.*;
 import java.io.*;
 
@@ -25,8 +30,17 @@ public class IntegrationModule {
 
 			while (true) {
 				System.out.println("\n1. Register\n2. Login\n3. Exit");
-				System.out.print("Select an option: ");
-				int choice = Integer.parseInt(scanner.nextLine());
+				int choice = -1;
+				while (true) {
+				    System.out.print("Select an option: ");
+				    String input = scanner.nextLine();
+				    try {
+				        choice = Integer.parseInt(input);
+				        break;
+				    } catch (NumberFormatException e) {
+				        System.out.println("Invalid input. Please enter a number.");
+				    }
+				}
 
 				if (choice == 1) {
 					System.out.print("Username: ");
@@ -73,9 +87,18 @@ public class IntegrationModule {
 				System.out.println("6. Perform What-If Budget Prediction");
 				System.out.println("7. Delete My Account");
 				System.out.println("8. Logout");
-				System.out.print("Select an option: ");
+				int option = -1;
+				while (true) {
+				    System.out.print("Select an option: ");
+				    String input = scanner.nextLine();
+				    try {
+				        option = Integer.parseInt(input);
+				        break;
+				    } catch (NumberFormatException e) {
+				        System.out.println("Invalid input. Please enter a number.");
+				    }
+				}
 
-				int option = Integer.parseInt(scanner.nextLine());
 
 				if (option == 1) {
 					budget.promptToCreateOrUpdate();
@@ -112,45 +135,77 @@ public class IntegrationModule {
 					if (ValidationManager.CheckCSVFileFormat.validCSVFile(filePath)) {
 						System.out.print("Save report to a file? (y/n): ");
 						boolean saveToFile = scanner.nextLine().equalsIgnoreCase("y");
-						ReportsManager.analyzeData(filePath, year, saveToFile);
+						ReportsManager.analyzeData(currentUser, year, saveToFile);
 					} else {
 						System.out.println("Invalid or missing CSV file.");
 					}
 				} else if (option == 6) {
-					System.out.print("Enter year to perform prediction: ");
-					int year = Integer.parseInt(scanner.nextLine());
-					String filePath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername() + "/"
-							+ year + ".csv";
-					File file = new File(filePath);
-					if (!file.exists()) {
-						System.out.println("Prediction failed: File does not exist for year " + year);
-						continue;
-					}
-					try {
-						PredictionManager pd = new PredictionManager(filePath);
-						String status = pd.determineBudgetStatus();
-						System.out.println("Current Budget Status: " + status);
+				    System.out.print("Enter year to perform prediction: ");
+				    int year = -1;
+				    try {
+				        year = Integer.parseInt(scanner.nextLine());
+				    } catch (NumberFormatException e) {
+				        System.out.println("Invalid year. Please enter a valid numeric year.");
+				        continue;
+				    }
 
-						if (status.equals("surplus")) {
-							System.out.printf("You can spend an additional: $%.2f\n",
-									pd.determinePossibleAdditionalSpending("Any"));
-						} else if (status.equals("deficit")) {
-							System.out.printf("You need to cut expenses by: $%.2f\n", pd.determineDecreaseForSurplus());
-						}
-					} catch (IOException e) {
-						System.out.println("Failed to read prediction file: " + e.getMessage());
-					}
+				    String filePath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername() + "/" + year + ".csv";
+				    File file = new File(filePath);
+
+				    if (!file.exists()) {
+				        System.out.println("Prediction failed: No data found for year " + year);
+				        System.out.println("Please upload it first using option 1 (Upload or Update Income/Expense CSV).");
+				        continue;
+				    }
+
+				    try {
+				        PredictionManager pd = new PredictionManager(filePath);
+				        String status = pd.determineBudgetStatus();
+				        System.out.println("Current Budget Status: " + status);
+
+				        if (status.equals("surplus")) {
+				            System.out.printf("You can spend an additional: $%.2f%n", pd.determinePossibleAdditionalSpending("Any"));
+				        } else if (status.equals("deficit")) {
+				            System.out.printf("You need to cut expenses by: $%.2f%n", pd.determineDecreaseForSurplus());
+				        } else {
+				            System.out.println("Unknown budget status. Please check your data.");
+				        }
+
+				    } catch (IOException e) {
+				        System.out.println("Failed to run prediction due to a system error.");
+				        System.out.println("Details: " + e.getMessage());
+				    }
+				
+
 				} else if (option == 7) {
-					System.out.print("Are you sure you want to delete your account? (y/n): ");
-					String confirm = scanner.nextLine();
-					if (confirm.equalsIgnoreCase("y")) {
-						accountDAO.deleteAccount(currentUser.getId());
-						System.out.println("Your account has been deleted.");
-						logoutUser();
-						break;
-					} else {
-						System.out.println("Account deletion canceled.");
-					}
+				    System.out.print("Are you sure you want to delete your account? (y/n): ");
+				    String confirm = scanner.nextLine();
+
+				    if (confirm.equalsIgnoreCase("y")) {
+				        // Delete associated files
+				        String userDirPath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername();
+				        File userDir = new File(userDirPath);
+				        if (userDir.exists() && userDir.isDirectory()) {
+				            for (File file : userDir.listFiles()) {
+				                if (!file.delete()) {
+				                    System.out.println("⚠ Failed to delete file: " + file.getName());
+				                }
+				            }
+				            if (!userDir.delete()) {
+				                System.out.println("⚠ Failed to delete user folder: " + userDirPath);
+				            }
+				        }
+
+				        accountDAO.deleteAccount(currentUser.getId());
+				        System.out.println("Your account has been deleted.");
+				        System.out.println("Goodbye, " + currentUser.getUsername() + "!");
+				        displayLoginMenu();
+				        
+				    }
+				  
+				    
+				
+
 				} else if (option == 8) {
 					logoutUser();
 					break;
