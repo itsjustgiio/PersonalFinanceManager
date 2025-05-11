@@ -202,8 +202,6 @@ public class IntegrationModule {
 				        displayLoginMenu();
 				        
 				    }
-				  
-				    
 				
 
 				} else if (option == 8) {

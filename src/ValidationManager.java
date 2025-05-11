@@ -1,5 +1,8 @@
 /**
- * @author Ayana Tran, Axyl Fredrick, Susie Marrero, Omar Quraishi
+ * @author Ayana Tran, 
+ * @author Axyl Fredrick
+ * @author Susie Marrero
+ * @author Omar Quraishi
  * @version 1.01, 10 April 2025
  */
 import java.io.File;            // To create File objects and check if files exist, are readable, etc.
@@ -108,7 +111,7 @@ public class ValidationManager {
             if (category == null || category.isEmpty()) {
                 return false;
             }
-            return category.matches("[a-zA-Z_]+"); // Category must be only letters or underscores
+            return category.matches("[a-zA-Z_&]+"); // Category must be only letters, ampersands, or underscores
         }
 
         // Method to check if a dollar amount string is valid
@@ -119,21 +122,13 @@ public class ValidationManager {
         // Validation of one individual line
         public static boolean validateLine(int expectedYear, String line) {
             String[] parts = line.split(",");
-            if (parts.length < 3) {
-                System.err.println("Invalid line format: not enough columns.");
+            if (parts.length != 3) {
+                System.err.println("Invalid line format: Wrong number of columns. Only Date, Category, and Amount are valid in CSV file.");
                 return false;
             }
-            
-            /* If commas are not allowed in the file add this code
-
-			if (parts.length > 3) {
-				System.err.println("Invalid line format: too many columns or invalid comma in category.");
-			}
-
-             */
     
             String date = parts[0];
-            String category = line.substring(line.indexOf(",")+1, line.lastIndexOf(",")-1);//parts[1];
+            String category = parts[1];
             String amount = parts[parts.length-1];
     
             if (!validDateFormat(date)) {
@@ -160,6 +155,19 @@ public class ValidationManager {
             return true;
         }
 
+        //Validate header for file, method is dummied out because it is no longer needed.
+        /* public static boolean validHeader(String line) {
+          String parts = line.split(',');
+          if (parts.length != 3)
+            return false;
+          String[] header = {"date", "category", "amount"}
+          for (int i = 0; i < 3; i++) {
+            if (parts[i].trim().toLowerCase() != header[i])
+              return false;
+          }
+          return true;
+        } */
+
         //Validate the entire CSV file
         public static boolean validateWholeCSVFile(int expectedYear, String filePath) {
             if (!CheckCSVFileFormat.validCSVFile(filePath)) {
@@ -168,6 +176,10 @@ public class ValidationManager {
 
             try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
                 String line;
+		// dummied out header code below:
+		/* = br.readLine();
+                if (!validateLine(expectedYear, line) && !validHeader()) 
+                  return false;*/
                 while ((line = br.readLine()) != null) {
                     if (!validateLine(expectedYear, line))
                       return false;
@@ -223,4 +235,3 @@ public class ValidationManager {
         }
     }
 }
-
