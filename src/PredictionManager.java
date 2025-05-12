@@ -11,10 +11,10 @@ public class PredictionManager {
 
     private int totalIncome;
     private int totalExpenses;
-
-    private String priority1;
-    private String priority2;
-    private String priority3;
+//Changed public to priority 1,2,3 to use in integration
+    public String priority1;
+    public String priority2;
+    public String priority3;
 
     /**
      * Constructor 

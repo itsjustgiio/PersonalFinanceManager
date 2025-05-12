@@ -26,6 +26,11 @@ public class IntegrationModule {
 			authService = new AuthService(accountDAO);
 		}
 
+		/**
+		 * Displays the initial login menu for the user. Handles registration and login
+		 * using AuthService. If login is successful, navigates to the main user menu.
+		 */
+
 		public void displayLoginMenu() {
 			Scanner scanner = new Scanner(System.in);
 
@@ -82,6 +87,15 @@ public class IntegrationModule {
 			}
 		}
 
+		/**
+		 * Displays the main menu after a user logs in. Provides access to all major
+		 * functionalities: 1. Upload or update budget data 2. View loaded budget years
+		 * 3. View transactions for a specific year 4. Delete a budget year 5. Generate
+		 * a financial report 6. Perform what-if predictions using PredictionManager 7.
+		 * Change password (via password or secret question) 8. Delete user account and
+		 * associated files 9. Logout and return to login screen
+		 */
+
 		public void displayMainMenu() {
 			Scanner scanner = new Scanner(System.in);
 
@@ -108,9 +122,16 @@ public class IntegrationModule {
 					}
 				}
 
+				// Option 1: Upload or Update Income/Expense CSV
+				// Invokes Budget module to upload or overwrite CSV data for a given year.
+
 				if (option == 1) {
 					budget.promptToCreateOrUpdate();
-				} else if (option == 2) {
+				}
+				// Option 2: List Loaded Budget Years
+				// Displays all years for which the current user has uploaded budget data.
+
+				else if (option == 2) {
 					ArrayList<Integer> years = budget.getYears();
 					if (years.isEmpty()) {
 						System.out.println("No budgets found.");
@@ -120,7 +141,11 @@ public class IntegrationModule {
 							System.out.println("- " + year);
 						}
 					}
-				} else if (option == 3) {
+				}
+				// Option 3: View Transactions for a Year
+				// Prompts for a year and displays the detailed transaction list for that year.
+
+				else if (option == 3) {
 					System.out.print("Enter the year to view transactions: ");
 					int year = Integer.parseInt(scanner.nextLine());
 					ArrayList<Budget.Transaction> transactions = budget.readCSV(year);
@@ -133,15 +158,24 @@ public class IntegrationModule {
 									tr.getCategory(), tr.getAmount());
 						}
 					}
-				} else if (option == 4) {
+				}
+				// Option 4: Delete Budget for a Year
+				// Prompts for confirmation and deletes the specified year’s CSV data.
+
+				else if (option == 4) {
 					budget.promptToDelete();
-				} else if (option == 5) {
+				}
+				// Option 5: Generate Financial Report
+				// Prompts for year and generates analysis using ReportsManager.
+				// Optionally saves the report to file if user confirms.
+
+				else if (option == 5) {
 					System.out.print("Enter year to generate report: ");
 					int year = Integer.parseInt(scanner.nextLine());
 					String filePath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername() + "/"
 							+ year + ".csv";
 					if (ValidationManager.CheckCSVFileFormat.validCSVFile(filePath)) {
-						System.out.print("Save report to a file? (y/n): ");
+						System.out.print(askYesOrNo(scanner, "Save report to a file? (y/n): "));
 						boolean saveToFile = scanner.nextLine().equalsIgnoreCase("y");
 						ReportsManager.analyzeData(currentUser, year, saveToFile);
 					} else {
@@ -151,14 +185,24 @@ public class IntegrationModule {
 						continue;
 					}
 
-				} else if (option == 6) {
-					System.out.print("Enter year to perform prediction: ");
+				}
+				// Option 6: Perform What-If Budget Prediction
+				// Loads user CSV and performs analysis with PredictionManager.
+				// Allows setting spending priorities (up to 3).
+				// Simulates reducing spending in a category while respecting priorities.
+				// Only categories present in the uploaded file are allowed as input.
+
+				else if (option == 6) {
 					int year = -1;
-					try {
-						year = Integer.parseInt(scanner.nextLine());
-					} catch (NumberFormatException e) {
-						System.out.println("Invalid year. Please enter a valid numeric year.");
-						continue;
+					while (true) {
+						System.out.print("Enter year to perform prediction: ");
+						String input = scanner.nextLine().trim();
+						try {
+							year = Integer.parseInt(input);
+							break;
+						} catch (NumberFormatException e) {
+							System.out.println("Invalid year. Please enter a valid numeric year.");
+						}
 					}
 
 					String filePath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername() + "/"
@@ -167,42 +211,133 @@ public class IntegrationModule {
 
 					if (!file.exists()) {
 						System.out.println("Prediction failed: No data found for year " + year);
-						System.out.println("Please upload it first using option 1.");
+						System.out.println("(Please upload it first using option 1.)");
 						continue;
+
 					}
 
 					try {
 						PredictionManager pd = new PredictionManager(filePath);
 						String status = pd.determineBudgetStatus();
-						System.out.println("Current Budget Status: " + status);
+						System.out.println("\nCurrent Budget Status: " + status);
 
 						if (status.equals("surplus")) {
 							int extra = pd.determinePossibleAdditionalSpending("Any");
-							System.out.printf("You can spend an additional: $%d%n", extra);
+							System.out.printf("You can spend an additional: $%d\n", extra);
 						} else if (status.equals("deficit")) {
 							int cut = pd.determineDecreaseForSurplus();
-							System.out.printf("You need to cut expenses by: $%d%n", cut);
-						} else if (status.equals("balanced")) {
-							System.out.println("Your budget is balanced — no prediction needed.");
+							System.out.printf("You need to cut expenses by: $%d\n", cut);
+						} else {
+							System.out.println("Your budget is balanced – no prediction needed.");
 						}
 
-						// Ask if user wants to simulate changing category spending
-						System.out.print("Would you like to simulate modifying spending for a category? (y/n): ");
-						String mod = scanner.nextLine().trim();
-						if (mod.equalsIgnoreCase("y")) {
-							System.out.print("Enter category to modify (case-sensitive): ");
-							String category = scanner.nextLine().trim();
+						Set<String> validCategoriesFromFile = new HashSet<>();
+						try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+							String line;
+							while ((line = reader.readLine()) != null) {
+								line = line.trim();
+								if (line.isEmpty() || line.toLowerCase().contains("category"))
+									continue;
+								String[] parts = line.split(",");
+								if (parts.length == 3) {
+									String category = parts[1].trim();
+									if (ValidationManager.CheckCSVContent.validCategories(category)) {
+										validCategoriesFromFile.add(category);
+									}
+								}
+							}
+						} catch (IOException e) {
+							System.out.println("Failed to re-parse CSV categories: " + e.getMessage());
+						}
+						System.out.println("\nValid categories from your file: " + validCategoriesFromFile);
 
-							System.out.print("Enter adjustment amount in dollars (e.g., 200 to reduce): ");
-							int amount = 0;
-							try {
-								amount = Integer.parseInt(scanner.nextLine().trim());
-							} catch (NumberFormatException e) {
-								System.out.println("Invalid number. Cancelling adjustment.");
-								return;
+						pd.clearBudgetPriorities();
+						if (askYesOrNo(scanner, "Would you like to set budget priorities?")) {
+							for (int i = 1; i <= 3; i++) {
+								while (true) {
+									System.out.print("Enter priority #" + i + " category (or press ENTER to skip): ");
+									String category = scanner.nextLine().trim();
+									if (category.isEmpty())
+										break;
+									if (validCategoriesFromFile.contains(category)) {
+										pd.setBudgetPriorities(category);
+										break;
+									} else {
+										System.out.println("Invalid category. Choose one from your loaded CSV.");
+									}
+								}
 							}
 
-							pd.modifySpending(category, -amount); // reduce spending by that amount
+							System.out.println("\nYour current budget priorities are:");
+							System.out.println("1. " + (pd.priority1 != null ? pd.priority1 : "(none)"));
+							System.out.println("2. " + (pd.priority2 != null ? pd.priority2 : "(none)"));
+							System.out.println("3. " + (pd.priority3 != null ? pd.priority3 : "(none)"));
+
+							if (askYesOrNo(scanner, "Would you like to change or remove any priorities?")) {
+								while (true) {
+									System.out.print("Enter a category to remove from priorities: ");
+									String remove = scanner.nextLine().trim();
+									if (validCategoriesFromFile.contains(remove)) {
+										pd.removeBudgetPriority(remove);
+										break;
+									} else {
+										System.out.println("Invalid category. Try again.");
+									}
+								}
+
+								if (askYesOrNo(scanner, "Would you like to set a new priority in its place?")) {
+									while (true) {
+										System.out.print("Enter new priority category: ");
+										String newPriority = scanner.nextLine().trim();
+										if (validCategoriesFromFile.contains(newPriority)) {
+											pd.setBudgetPriorities(newPriority);
+											break;
+										} else {
+											System.out.println("Invalid category. Try again.");
+										}
+									}
+								}
+
+								System.out.println("\nUpdated budget priorities:");
+								System.out.println("1. " + (pd.priority1 != null ? pd.priority1 : "(none)"));
+								System.out.println("2. " + (pd.priority2 != null ? pd.priority2 : "(none)"));
+								System.out.println("3. " + (pd.priority3 != null ? pd.priority3 : "(none)"));
+							}
+						}
+
+						while (askYesOrNo(scanner, "Would you like to simulate modifying spending for a category?")) {
+							String category;
+							while (true) {
+								System.out.print("Enter category to modify (case-sensitive): ");
+								category = scanner.nextLine().trim();
+								if (validCategoriesFromFile.contains(category))
+									break;
+								System.out.println("Invalid category. Try again.");
+							}
+
+							int amount = 0;
+							while (true) {
+								System.out.print("Enter adjustment amount in dollars (e.g., 200 to reduce): ");
+								try {
+									amount = Integer.parseInt(scanner.nextLine().trim());
+									if (amount <= 0)
+										throw new NumberFormatException();
+									break;
+								} catch (NumberFormatException e) {
+									System.out.println("Invalid amount. Enter a positive number.");
+								}
+							}
+
+							int oldExpenses = pd.getTotalExpenses();
+							pd.modifySpending(category, -amount);
+							int newExpenses = pd.getTotalExpenses();
+
+							if (oldExpenses == newExpenses) {
+								if (!askYesOrNo(scanner, "Would you like to try a different category?"))
+									break;
+							} else {
+								break;
+							}
 						}
 
 					} catch (IOException e) {
@@ -211,7 +346,11 @@ public class IntegrationModule {
 					} catch (IllegalArgumentException e) {
 						System.out.println("Data validation error: " + e.getMessage());
 					}
-				} else if (option == 7) {
+				}
+				// Option 7: Change Password
+				// Allows password change using either current password or secret question.
+
+				else if (option == 7) {
 					System.out.println("Choose method:");
 					System.out.println("1. I know my current password");
 					System.out.println("2. I forgot my password but can answer my secret question");
@@ -252,8 +391,12 @@ public class IntegrationModule {
 					} else {
 						System.out.println("Invalid selection.");
 					}
-				} else if (option == 8) {
-					System.out.print("Are you sure you want to delete your account? (y/n): ");
+				}
+				// Option 8: Delete My Account
+				// Confirms deletion, then removes user record and all associated CSV files.
+
+				else if (option == 8) {
+					System.out.print(askYesOrNo(scanner, "Are you sure you want to delete your account?"));
 					String confirm = scanner.nextLine();
 
 					if (confirm.equalsIgnoreCase("y")) {
@@ -263,11 +406,11 @@ public class IntegrationModule {
 						if (userDir.exists() && userDir.isDirectory()) {
 							for (File file : userDir.listFiles()) {
 								if (!file.delete()) {
-									System.out.println("⚠ Failed to delete file: " + file.getName());
+									System.out.println("Failed to delete file: " + file.getName());
 								}
 							}
 							if (!userDir.delete()) {
-								System.out.println("⚠ Failed to delete user folder: " + userDirPath);
+								System.out.println("Failed to delete user folder: " + userDirPath);
 							}
 						}
 
@@ -278,7 +421,11 @@ public class IntegrationModule {
 
 					}
 
-				} else if (option == 9) {
+				}
+				// Option 9: Logout
+				// Logs the user out and returns to the login menu.
+
+				else if (option == 9) {
 					logoutUser();
 					break;
 				} else {
@@ -286,6 +433,11 @@ public class IntegrationModule {
 				}
 			}
 		}
+
+		/**
+		 * Logs out the current user and prints a farewell message. Resets the
+		 * currentUser field to null.
+		 */
 
 		public void logoutUser() {
 			if (currentUser != null) {
@@ -295,7 +447,33 @@ public class IntegrationModule {
 			}
 			currentUser = null;
 		}
+
+		/**
+		 * Utility method to repeatedly prompt user with a (y/n) question. Returns true
+		 * for 'y' and false for 'n'. Repeats until valid input.
+		 *
+		 * @param scanner  Scanner instance for user input
+		 * @param question The prompt to show
+		 * @return true if user enters 'y', false if 'n'
+		 */
+
+		private static boolean askYesOrNo(Scanner scanner, String question) {
+			while (true) {
+				System.out.print(question + " (y/n): ");
+				String input = scanner.nextLine().trim().toLowerCase();
+				if (input.equals("y"))
+					return true;
+				if (input.equals("n"))
+					return false;
+				System.out.println("Invalid input. Please enter 'y' or 'n'.");
+			}
+		}
+
 	}
+
+	/**
+	 * Entry point for the application. Initializes and starts the login menu.
+	 */
 
 	public static void main(String[] args) {
 		MainMenu menu = new MainMenu();
