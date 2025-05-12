@@ -1,5 +1,4 @@
 //File Name: IntegrationModule.java
-
 //Purpose: Integrated Main Menu for PFM system (Beta Version with Account Deletion)
 //Team: Integration
 //Team Lead: Aye Chan
@@ -64,7 +63,7 @@ public class IntegrationModule {
 						System.out.print("Email: ");
 						email = scanner.nextLine().trim();
 						if (email.contains("@") && email.contains("."))
-							break; // basic check; or call a dedicated method if you have one
+							break;
 						System.out.println("Invalid email format.");
 					}
 
@@ -118,7 +117,7 @@ public class IntegrationModule {
 					}
 				} else {
 					System.out.println("Exiting...");
-					System.exit(0);;
+					System.exit(0);
 				}
 			}
 		}
@@ -127,9 +126,9 @@ public class IntegrationModule {
 		 * Displays the main menu after a user logs in. Provides access to all major
 		 * functionalities: 1. Upload or update budget data 2. View loaded budget years
 		 * 3. View transactions for a specific year 4. Delete a budget year 5. Generate
-		 * a financial report 6. Perform what-if predictions using PredictionManager 7.
-		 * Change password (via password or secret question) 8. Delete user account and
-		 * associated files 9. Logout and return to login screen
+		 * a financial report 6. Perform what-if predictions using PredictionManager
+		 * 7.Change password (via password or secret question) 8. Delete user account
+		 * and associated files 9. Logout and return to login screen
 		 */
 
 		public void displayMainMenu() {
