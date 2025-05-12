@@ -6,6 +6,7 @@
 /* Bug Fix: KAN-16 - Added input validation for numeric menu selection to prevent NumberFormatException - Aye Chan
  * Bug Fix: KAN-17 - Added detailed user-friendly error messages for failed module operations - Aye Chan
  * Bug Fix: KAN-19 - Added logic to delete user's budget CSV files from pfm_data folder when account is deleted - Aye Chan
+ * Bug Fix: KAN-25 - Now Completely Stop The Program
 */
 
 import java.util.*;
