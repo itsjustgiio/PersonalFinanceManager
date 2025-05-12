@@ -49,22 +49,58 @@ public class IntegrationModule {
 				}
 
 				if (choice == 1) {
-					System.out.print("Username: ");
-					String username = scanner.nextLine().trim();
-					System.out.print("Email: ");
-					String email = scanner.nextLine().trim();
-					System.out.print("Password: ");
-					String password = scanner.nextLine().trim();
-					System.out.print("Secret Question: ");
-					String secretQuestion = scanner.nextLine().trim();
-					System.out.print("Secret Answer: ");
-					String secretAnswer = scanner.nextLine().trim();
+					String username;
+					while (true) {
+						System.out.print("Username: ");
+						username = scanner.nextLine().trim();
+						if (ValidationManager.UserCredentialValueLimiter.restrictUsernameValues(username))
+							break;
+						System.out.println(
+								"Username must be 3–20 characters long and can only contain letters, numbers, underscores.");
+					}
+
+					String email;
+					while (true) {
+						System.out.print("Email: ");
+						email = scanner.nextLine().trim();
+						if (email.contains("@") && email.contains("."))
+							break; // basic check; or call a dedicated method if you have one
+						System.out.println("Invalid email format.");
+					}
+
+					String password;
+					while (true) {
+						System.out.print("Password: ");
+						password = scanner.nextLine().trim();
+						if (ValidationManager.UserCredentialValueLimiter.restrictPasswordValues(password))
+							break;
+						System.out.println(
+								"Password must be at least 8 characters, and include upper, lower, number, and special char.");
+					}
+
+					String secretQuestion;
+					while (true) {
+						System.out.print("Secret Question: ");
+						secretQuestion = scanner.nextLine().trim();
+						if (!secretQuestion.isEmpty())
+							break;
+						System.out.println("Secret question cannot be empty.");
+					}
+
+					String secretAnswer;
+					while (true) {
+						System.out.print("Secret Answer: ");
+						secretAnswer = scanner.nextLine().trim();
+						if (ValidationManager.UserCredentialValueLimiter.restrictSecretPasswordValues(secretAnswer))
+							break;
+						System.out
+								.println("Secret answer must be 2–50 characters and only letters, numbers, or spaces.");
+					}
 
 					boolean success = authService.register(username, email, password, secretQuestion, secretAnswer);
 					if (success) {
 						System.out.println("Account created successfully!");
 					}
-
 				} else if (choice == 2) {
 					System.out.print("Username: ");
 					String username = scanner.nextLine();
@@ -82,7 +118,7 @@ public class IntegrationModule {
 					}
 				} else {
 					System.out.println("Exiting...");
-					break;
+					System.exit(0);;
 				}
 			}
 		}
@@ -174,9 +210,9 @@ public class IntegrationModule {
 					int year = Integer.parseInt(scanner.nextLine());
 					String filePath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername() + "/"
 							+ year + ".csv";
+
 					if (ValidationManager.CheckCSVFileFormat.validCSVFile(filePath)) {
-						System.out.print(askYesOrNo(scanner, "Save report to a file? (y/n): "));
-						boolean saveToFile = scanner.nextLine().equalsIgnoreCase("y");
+						boolean saveToFile = askYesOrNo(scanner, "Save report to a file?");
 						ReportsManager.analyzeData(currentUser, year, saveToFile);
 					} else {
 						System.out.println("No data found for year " + year);
@@ -396,11 +432,9 @@ public class IntegrationModule {
 				// Confirms deletion, then removes user record and all associated CSV files.
 
 				else if (option == 8) {
-					System.out.print(askYesOrNo(scanner, "Are you sure you want to delete your account?"));
-					String confirm = scanner.nextLine();
+					boolean confirm = askYesOrNo(scanner, "Are you sure you want to delete your account?");
+					if (confirm) {
 
-					if (confirm.equalsIgnoreCase("y")) {
-						// Delete associated files
 						String userDirPath = System.getProperty("user.dir") + "/pfm_data/" + currentUser.getUsername();
 						File userDir = new File(userDirPath);
 						if (userDir.exists() && userDir.isDirectory()) {
@@ -409,19 +443,18 @@ public class IntegrationModule {
 									System.out.println("Failed to delete file: " + file.getName());
 								}
 							}
-							if (!userDir.delete()) {
-								System.out.println("Failed to delete user folder: " + userDirPath);
-							}
+						}
+						if (!userDir.delete()) {
+							System.out.println("Failed to delete user folder: " + userDirPath);
 						}
 
 						accountDAO.deleteAccount(currentUser.getId());
 						System.out.println("Your account has been deleted.");
 						System.out.println("Goodbye, " + currentUser.getUsername() + "!");
 						displayLoginMenu();
-
 					}
-
 				}
+
 				// Option 9: Logout
 				// Logs the user out and returns to the login menu.
 
