@@ -1,12 +1,29 @@
-//File Name: IntegrationModule.java
-//Purpose: Integrated Main Menu for PFM system (Beta Version with Account Deletion)
-//Team: Integration
-//Team Lead: Aye Chan
+/**
+ * File Name: IntegrationModule.java
+ * 
+ * Purpose:
+ * Provides an integrated main menu system for the Personal Finance Manager (PFM) application.
+ * Facilitates account management (registration, login, password change, account deletion),
+ * as well as budget-related operations including uploading, viewing, editing, deleting budget data,
+ * and generating financial reports and predictive analysis.
+ * 
+ * Features:
+ * - User authentication via AuthService
+ * - Budget data management and report generation
+ * - What-if scenario prediction with customizable spending priorities
+ * - Input validation and user-friendly error messages
+ * - Password alteration through secret questions or account deletion
+ * 
+ * Team: Integration
+ @author Aye Chan, Jacob Li, Jason Zhao, Zach Tun
+ @version Beta
+ Last updated: 2025-05-11
+ */
 
 /* Bug Fix: KAN-16 - Added input validation for numeric menu selection to prevent NumberFormatException - Aye Chan
  * Bug Fix: KAN-17 - Added detailed user-friendly error messages for failed module operations - Aye Chan
  * Bug Fix: KAN-19 - Added logic to delete user's budget CSV files from pfm_data folder when account is deleted - Aye Chan
- * Bug Fix: KAN-25 - Now Completely Stop The Program
+ * Bug Fix: KAN-25 - Now Completely Stop The Program - Aye Chan
 */
 
 import java.util.*;
