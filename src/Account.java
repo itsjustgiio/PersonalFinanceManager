@@ -1,4 +1,3 @@
-// Arian Berisha- 05/09/2025
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,7 +6,6 @@ import java.util.UUID;
 import java.util.Scanner;
 import java.io.*;
 
-
 class AuthService {
     private final AccountDAO accountDAO;
 
@@ -15,18 +13,18 @@ class AuthService {
         this.accountDAO = accountDAO;
     }
 
-    public boolean register(String username, String email, String password , String secretQuestion, String secretAnswer) {
+    public boolean register(String username, String email, String password, String secretQuestion, String secretAnswer) {
         
-        if (!username.matches("^[a-zA-Z0-9_-]{3,20}$")) { // added if statement to fix KAN-4 bug - Arian
+        if (!username.matches("^[a-zA-Z0-9_-]{3,20}$")) {
             System.out.println("Username must be 3-20 characters long and can only contain letters, numbers, underscores, or hyphens.");
             return false;
         }
         if (accountDAO.getAccountByUsername(username) != null) {
-            System.out.println("Username already exists.");   // added the println statement - Arian
-            return false; // Username already exists
+            System.out.println("Username already exists.");
+            return false;
         }
             
-        String id = UUID.randomUUID().toString(); // updated to accept question/answer- Arian
+        String id = UUID.randomUUID().toString();
         Account account = new Account(id, username, email, password, secretQuestion, secretAnswer);
         accountDAO.createAccount(account);
         return true;
@@ -44,6 +42,7 @@ class AuthService {
         return account != null;
     }
 }
+
 class AccountDAO {
     private final Map<String, Account> accounts = new HashMap<>();
     private final String ACCOUNT_FILE = "accounts.txt";
@@ -55,10 +54,9 @@ class AccountDAO {
     private void loadAccountsFromFile() {
         try (BufferedReader reader = new BufferedReader(new FileReader(ACCOUNT_FILE))) {
             String line;
-            while ((line = reader.readLine()) != null) { // added secretQuestion and secretAnswer- Arian
-                // Format: id|username|email|password|secretQuestion|secretAnswer 
+            while ((line = reader.readLine()) != null) {
                 String[] parts = line.split("\\|");
-                if (parts.length == 6) { // changed from 4 to 6 to accomodate for secret Q and A- Arian
+                if (parts.length == 6) {
                     String id = parts[0];
                     String username = parts[1];
                     String email = parts[2];
@@ -71,7 +69,6 @@ class AccountDAO {
                 }
             }
         } catch (IOException e) {
-            // If file doesn't exist or is corrupted, ignore for now
             System.err.println("Could not load accounts from file: " + e.getMessage());
         }
     }
@@ -84,8 +81,8 @@ class AccountDAO {
                     account.getUsername(),
                     account.getEmail(),
                     account.getPassword(),
-                    account.getSecretQuestion(),    // added 2 extra lines
-                    account.getSecretAnswer()       // - Arian
+                    account.getSecretQuestion(),
+                    account.getSecretAnswer()
                 );
                 writer.write(line);
                 writer.newLine();
@@ -105,8 +102,9 @@ class AccountDAO {
     }
 
     public Account getAccountByUsername(String username) {
+        String lowerUsername = username.toLowerCase();
         for (Account account : accounts.values()) {
-            if (account.getUsername().equals(username)) return account;
+            if (account.getUsername().toLowerCase().equals(lowerUsername)) return account;
         }
         return null;
     }
@@ -125,8 +123,9 @@ class AccountDAO {
         saveAccountsToFile();
     }
 }
-public class Account { // Included both secretQuestion and secretAnswer upon this class
-    private String id; // to fix KAN-5 bug- Arian
+
+public class Account {
+    private String id;
     private String username;
     private String email;
     private String password;
@@ -141,6 +140,8 @@ public class Account { // Included both secretQuestion and secretAnswer upon thi
         this.secretQuestion = secretQuestion;
         this.secretAnswer = secretAnswer;
     }
+    
+    // Added by Integration Team
     public Account() {
         this.id = "";
         this.username = "";
@@ -149,17 +150,17 @@ public class Account { // Included both secretQuestion and secretAnswer upon thi
         this.secretQuestion = "";
         this.secretAnswer = "";
     }
+
     public String getUserDataDir() {
         String baseDir = "users";
         String fullPath = baseDir + "/" + username + "_" + id;
         java.io.File dir = new java.io.File(fullPath);
         if (!dir.exists()) {
-            dir.mkdirs(); // create folders if missing
+            dir.mkdirs();
         }
         return fullPath;
     }
 
-    
     // Getters
     public String getId() {
         return id;
@@ -177,11 +178,11 @@ public class Account { // Included both secretQuestion and secretAnswer upon thi
         return password;
     }
     
-    public String getSecretQuestion() { // gets SecretQuestion- Arian
+    public String getSecretQuestion() {
         return secretQuestion;
     }
 
-    public String getSecretAnswer() { // gets SecretAnswer- Arian
+    public String getSecretAnswer() {
         return secretAnswer;
     }
 
@@ -194,15 +195,15 @@ public class Account { // Included both secretQuestion and secretAnswer upon thi
         this.password = password;
     }
 
-    public void setSecretQuestion(String q) { // sets SecretQuestion to q - Arian
+    public void setSecretQuestion(String q) {
         this.secretQuestion = q;
     }
 
-    public void setSecretAnswer(String a) { // sets SecretAnswer to a - Arian
+    public void setSecretAnswer(String a) {
         this.secretAnswer = a;
     }
-
 }
+
 class Main {
     public static void main(String[] args) {
         AccountDAO accountDAO = new AccountDAO();
@@ -214,27 +215,44 @@ class Main {
             System.out.print("Select an option: ");
             int choice = Integer.parseInt(scanner.nextLine());
             
-            // added a trim in input for username, email, pass, question and answer
-            if (choice == 1) { //  to fix KAN-3 and KAN-5 error- Arian
+            if (choice == 1) {
                 System.out.print("Username: ");
-                String username = scanner.nextLine().trim(); // .trim() added
+                String username = scanner.nextLine().trim();
                 System.out.print("Email: ");                 
-                String email = scanner.nextLine().trim(); // .trim() added
-                System.out.print("Password or PIN: ");
-                String password = scanner.nextLine().trim(); // .trim() added
-                System.out.print("Secret Question: "); // secretQuestion added
+                String email = scanner.nextLine().trim();
+                
+                // Hide password input
+                Console console = System.console();
+                String password;
+                if (console != null) {
+                    char[] passwordArray = console.readPassword("Password or PIN: ");
+                    password = new String(passwordArray);
+                } else {
+                    System.out.print("Password or PIN: ");
+                    password = scanner.nextLine().trim();
+                }
+                
+                System.out.print("Secret Question: ");
                 String question = scanner.nextLine().trim();
-                System.out.print("Secret Answer: ");    // secretAnswer added
+                System.out.print("Secret Answer: ");
                 String answer = scanner.nextLine().trim();
-
 
                 boolean success = authService.register(username, email, password, question, answer);
                 System.out.println(success ? "Account created successfully!" : "Username already exists.");
             } else if (choice == 2) {
                 System.out.print("Username: "); 
-                String username = scanner.nextLine().trim(); // .trim() added
-                System.out.print("Password or PIN: ");
-                String password = scanner.nextLine().trim(); // .trim() added
+                String username = scanner.nextLine().trim();
+                
+                // Hide password input
+                Console console = System.console();
+                String password;
+                if (console != null) {
+                    char[] passwordArray = console.readPassword("Password or PIN: ");
+                    password = new String(passwordArray);
+                } else {
+                    System.out.print("Password or PIN: ");
+                    password = scanner.nextLine().trim();
+                }
 
                 Account account = authService.login(username, password);
                 if (account != null) {
