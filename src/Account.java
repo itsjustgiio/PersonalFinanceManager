@@ -224,7 +224,7 @@ class Main {
             
             // added a trim in input for username, email, pass, question and answer
             if (choice == 1) {
-                System.out.print("Username: ");
+            	System.out.print("Username and DONT PUT A SPACE: ");
                 String username = scanner.nextLine().trim();
                 System.out.print("Password or PIN: ");
                 String password = scanner.nextLine().trim();

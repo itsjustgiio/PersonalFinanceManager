@@ -70,7 +70,7 @@ public class IntegrationModule {
 					// Register
 					String username;
 					while (true) {
-						System.out.print("Username: ");
+						System.out.print("Username and DONT PUT A SPACE: ");
 						username = scanner.nextLine().trim();
 						if (ValidationManager.UserCredentialValueLimiter.restrictUsernameValues(username))
 							break;
