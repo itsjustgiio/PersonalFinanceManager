@@ -11,7 +11,7 @@ public class PredictionManager {
 
     private int totalIncome;
     private int totalExpenses;
-//Changed public to priority 1,2,3 to use in integration
+
     public String priority1;
     public String priority2;
     public String priority3;
@@ -211,7 +211,7 @@ public class PredictionManager {
             adjustedAmount = amount / 2;
             remaining = amount - adjustedAmount;
         } else if (category.equals(priority3)) {
-            adjustedAmount = amount / 4;
+        	adjustedAmount = (amount / 4) * 3;
             remaining = amount - adjustedAmount;
         }
 
@@ -219,12 +219,11 @@ public class PredictionManager {
         if (totalExpenses < 0) totalExpenses = 0;
 
         // If there's leftover, prompt for a different category
+        String secondaryCategory = null;
         if (remaining > 0) {
             Scanner scanner = new Scanner(System.in);
-            String secondaryCategory;
             do {
-                System.out.print("Enter another category to adjust by $" +
-                        String.format("%.2f", (double) remaining) + ": ");
+                System.out.print("Enter another category to adjust by $" + remaining + ": ");
                 secondaryCategory = scanner.nextLine().trim();
                 if (secondaryCategory.equals(category)) {
                     System.out.println("Cannot adjust the same category again. Please choose a different category.");
@@ -234,16 +233,24 @@ public class PredictionManager {
             totalExpenses += remaining;
             if (totalExpenses < 0) totalExpenses = 0;
 
-            System.out.println("Adjusted spending in " + secondaryCategory +
-                    " by $" + String.format("%.2f", (double) remaining));
-            // Note: do not close scanner tied to System.in
+            System.out.println("Adjusted spending in " + secondaryCategory + " by $" + remaining);
         }
 
         // Savings projections
-        int annualSavings = totalIncome - totalExpenses;
+        int annualSavings = (int) (totalIncome - totalExpenses);
         System.out.println("\n--- Savings Projection ---");
         System.out.println("Annual Savings: $" + annualSavings);
         System.out.println("Savings over 2 years: $" + (annualSavings * 2));
         System.out.println("Savings over 5 years: $" + (annualSavings * 5));
+
+        System.out.println("\n--- Category-Specific Savings Projection ---");
+        if (adjustedAmount > 0) {
+            System.out.printf("Category: %-20s | Saved This Year: $%d | 2 Years: $%d | 5 Years: $%d\n",
+                    category, adjustedAmount, adjustedAmount * 2, adjustedAmount * 5);
+        }
+        if (secondaryCategory != null && remaining > 0) {
+            System.out.printf("Category: %-20s | Saved This Year: $%d | 2 Years: $%d | 5 Years: $%d\n",
+                    secondaryCategory, remaining, remaining * 2, remaining * 5);
+        }
     }
 }

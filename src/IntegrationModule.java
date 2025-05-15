@@ -47,25 +47,27 @@ public class IntegrationModule {
 		 * Displays the initial login menu for the user. Handles registration and login
 		 * using AuthService. If login is successful, navigates to the main user menu.
 		 */
-
 		public void displayLoginMenu() {
 			Scanner scanner = new Scanner(System.in);
 
 			while (true) {
-				System.out.println("\n1. Register\n2. Login\n3. Exit");
+				System.out.println("\n1. Register\n2. Login\n3. Forgot Password\n4. Exit");
 				int choice = -1;
 				while (true) {
 					System.out.print("Select an option: ");
-					String input = scanner.nextLine();
+					String input = scanner.nextLine().trim();
 					try {
 						choice = Integer.parseInt(input);
-						break;
+						if (choice >= 1 && choice <= 4)
+							break;
+						System.out.println("Please enter a number between 1 and 4.");
 					} catch (NumberFormatException e) {
 						System.out.println("Invalid input. Please enter a number.");
 					}
 				}
 
 				if (choice == 1) {
+					// Register
 					String username;
 					while (true) {
 						System.out.print("Username: ");
@@ -73,16 +75,7 @@ public class IntegrationModule {
 						if (ValidationManager.UserCredentialValueLimiter.restrictUsernameValues(username))
 							break;
 						System.out.println(
-								"Username must be 3–20 characters long and can only contain letters, numbers, underscores.");
-					}
-
-					String email;
-					while (true) {
-						System.out.print("Email: ");
-						email = scanner.nextLine().trim();
-						if (email.contains("@") && email.contains("."))
-							break;
-						System.out.println("Invalid email format.");
+								"Username must be 3–20 characters long and can only contain letters, numbers, underscores, or hyphens.");
 					}
 
 					String password;
@@ -114,26 +107,47 @@ public class IntegrationModule {
 								.println("Secret answer must be 2–50 characters and only letters, numbers, or spaces.");
 					}
 
-					boolean success = authService.register(username, email, password, secretQuestion, secretAnswer);
+					boolean success = authService.register(username, password, secretQuestion, secretAnswer);
 					if (success) {
 						System.out.println("Account created successfully!");
+					} else {
+						System.out.println("Registration failed. Username might already exist.");
 					}
+
 				} else if (choice == 2) {
+					// Login
 					System.out.print("Username: ");
-					String username = scanner.nextLine();
+					String username = scanner.nextLine().trim();
 					System.out.print("Password: ");
-					String password = scanner.nextLine();
+					String password = scanner.nextLine().trim();
 
 					Account account = authService.login(username, password);
 					if (account != null) {
 						System.out.println("Welcome, " + account.getUsername() + "!");
 						currentUser = account;
 						budget = new Budget(currentUser);
-						displayMainMenu();
+						displayMainMenu(); // Continue to main menu after login
 					} else {
 						System.out.println("Invalid username or password.");
 					}
+
+				} else if (choice == 3) {
+					// Forgot Password
+					System.out.print("Username: ");
+					String username = scanner.nextLine().trim();
+
+					Account account = accountDAO.getAccountByUsername(username);
+					if (account != null) {
+						System.out.println("Secret Question: " + account.getSecretQuestion());
+						System.out.print("Your Answer: ");
+						String answer = scanner.nextLine().trim();
+						authService.recoverPassword(username, answer);
+					} else {
+						System.out.println("Username not found.");
+					}
+
 				} else {
+					// Exit
 					System.out.println("Exiting...");
 					System.exit(0);
 				}
@@ -382,7 +396,7 @@ public class IntegrationModule {
 							}
 
 							int oldExpenses = pd.getTotalExpenses();
-							pd.modifySpending(category, -amount);
+							pd.modifySpending(category, amount);
 							int newExpenses = pd.getTotalExpenses();
 
 							if (oldExpenses == newExpenses) {

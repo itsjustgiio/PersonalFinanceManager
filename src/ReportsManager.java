@@ -70,7 +70,7 @@ class ReportsManager {
         String yearString = "" + incomeYear;
         int numberSpacing = yearString.length() + 1;
         if (numberSpacing < 8) numberSpacing = 8;
-        String[] months = {"Januray", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+        String[] months = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
         if (!writeToFile)  {
             System.out.println(String.format("%-9s | %-" + numberSpacing + "s | %-" + numberSpacing + "s | %s", "Month", "Income", "Expenses", "Net"));
             System.out.println();
@@ -103,4 +103,3 @@ class ReportsManager {
     }
 
 }
-
