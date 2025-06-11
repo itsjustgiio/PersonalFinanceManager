@@ -1,7 +1,7 @@
-##Personal Finance Manager (PFM)
+## Personal Finance Manager (PFM)
 Modular Java application for managing personal finances with account handling, budget predictions, and CSV-based data storage. Built using OOP principles and modular design.
 
-##📄 Table of Contents
+## 📄 Table of Contents
 1. Key Features
 2. Tech Stack
 3. Architecture & Modules
@@ -12,20 +12,20 @@ Modular Java application for managing personal finances with account handling, b
 8. Contributing
 9. Contact
 
-##Key Features
+## Key Features
 - Manage multiple accounts with balances
 - Categorize and track expenses/income
 - Generate budget predictions
 - Read/write transactions using CSV files
 - Modular architecture enabling team-owned components
 
-##Tech Stack
+## Tech Stack
 Language: Java
 Data Storage: CSV in pfm_data/, .txt for accounts
 Reporting: CSV-based (Report.csv)
 IDE Support: .classpath, .project, and .settings/ files provided
 
-##Architecture & Modules
+## Architecture & Modules
 PFM is organized by module packages:
 - **Account Module** – handles account creation and balance tracking
 - **Transaction Module** – manages income/expense entries
@@ -34,7 +34,7 @@ PFM is organized by module packages:
 - **Reporting Module** – compiles monthly transaction reports
 This modular structure enables easy maintenance and team collaboration.
 
-##Getting Started
+## Getting Started
 1. Clone the repo
 ```bash
 git clone https://github.com/itsjustgiio/PersonalFinanceManager.git
@@ -47,7 +47,7 @@ mvn clean install
 ```
 4. Run the main class (e.g., Main.java or App.java).
 
-##🧭 Usage
+## 🧭 Usage
 1. Ensure input files exist in pfm_data/:
   accounts.txt – each line: accountName,initialBalance
   transactions.csv – format (date, account, category, amount, description)
@@ -57,7 +57,7 @@ mvn clean install
   - Add a new income/expense
   - Generate a budget forecast
   - Export a monthly report (written to Report.csv)
-##🗄️ Data Storage
+## 🗄️ Data Storage
 - Raw data: stored in plaintext CSV within the pfm_data folder
 - Output: Report.csv summarizing monthly inflows, outflows, and net balance
 
