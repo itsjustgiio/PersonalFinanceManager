@@ -20,10 +20,10 @@ Modular Java application for managing personal finances with account handling, b
 - Modular architecture enabling team-owned components
 
 ## Tech Stack
-Language: Java
-Data Storage: CSV in pfm_data/, .txt for accounts
-Reporting: CSV-based (Report.csv)
-IDE Support: .classpath, .project, and .settings/ files provided
+- Language: Java
+- Data Storage: CSV in pfm_data/, .txt for accounts
+- Reporting: CSV-based (Report.csv)
+- IDE Support: .classpath, .project, and .settings/ files provided
 
 ## Architecture & Modules
 PFM is organized by module packages:
@@ -61,7 +61,7 @@ mvn clean install
 - Raw data: stored in plaintext CSV within the pfm_data folder
 - Output: Report.csv summarizing monthly inflows, outflows, and net balance
 
-##Testing & Reporting
+## Testing & Reporting
 Unit tests (if available) can be executed via:
 
 ```bash
@@ -70,7 +70,7 @@ mvn test
 
 Transactions report is generated as Report.csv in the repo root after running the app.
 
-##🤝 Contributing
+## 🤝 Contributing
 1. Fork this repo
 2. Create a feature branch (git checkout -b feature-name)
 3. Commit changes (git commit -m "feat: description")
